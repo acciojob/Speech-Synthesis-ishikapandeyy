@@ -45,9 +45,19 @@ function speak() {
   }
 
   // Set rate and pitch
-  msg.rate = document.querySelector('[name="rate"]').value;
-  msg.pitch = document.querySelector('[name="pitch"]').value;
+ const rate = document.querySelector('[name="rate"]');
+const pitch = document.querySelector('[name="pitch"]');
+	
+// Update speech rate while speaking
+rate.addEventListener('input', () => {
+  msg.rate = Number(rate.value);
+});
 
+// Update speech pitch while speaking
+pitch.addEventListener('input', () => {
+  msg.pitch = Number(pitch.value);
+});
+	
   // Start speaking
   window.speechSynthesis.speak(msg);
 }
@@ -60,14 +70,6 @@ stopButton.addEventListener('click', () => {
   window.speechSynthesis.cancel();
 });
 
-// 6. Update settings when sliders or text change
-options.forEach(option => {
-  option.addEventListener('change', () => {
-    if (window.speechSynthesis.speaking) {
-      speak();
-    }
-  });
-});
 
 // 7. Change voice when the dropdown changes
 voicesDropdown.addEventListener('change', speak);
