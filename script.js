@@ -1,4 +1,3 @@
-// Your script here.
 
 const msg = new SpeechSynthesisUtterance();
 let voices = [];
@@ -8,7 +7,11 @@ const options = document.querySelectorAll('[type="range"], [name="text"]');
 const speakButton = document.querySelector('#speak');
 const stopButton = document.querySelector('#stop');
 
-// 1. Get all available voices
+const rate = document.querySelector('[name="rate"]');
+const pitch = document.querySelector('[name="pitch"]');
+const text = document.querySelector('[name="text"]');
+
+// Get available voices
 function getVoices() {
   voices = window.speechSynthesis.getVoices();
 
@@ -16,61 +19,59 @@ function getVoices() {
 
   voices.forEach((voice, index) => {
     const option = document.createElement('option');
-
     option.value = index;
     option.textContent = `${voice.name} (${voice.lang})`;
-
     voicesDropdown.appendChild(option);
   });
 }
 
-// 2. Load voices
 getVoices();
-
 window.speechSynthesis.onvoiceschanged = getVoices;
 
-// 3. Speak the text
+// Speak function
 function speak() {
-  // Stop previous speech
   window.speechSynthesis.cancel();
 
-  // Set the text
-  msg.text = document.querySelector('[name="text"]').value;
+  // Set text before speaking
+  msg.text = text.value;
 
-  // Set the selected voice
+  // Set rate and pitch BEFORE speaking
+  msg.rate = Number(rate.value);
+  msg.pitch = Number(pitch.value);
+
+  // Apply the selected voice
   const selectedVoice = voices[voicesDropdown.value];
 
   if (selectedVoice) {
     msg.voice = selectedVoice;
   }
 
-  // Set rate and pitch
- const rate = document.querySelector('[name="rate"]');
-const pitch = document.querySelector('[name="pitch"]');
-	
-// Update speech rate while speaking
-rate.addEventListener('input', () => {
-  msg.rate = Number(rate.value);
-});
-
-// Update speech pitch while speaking
-pitch.addEventListener('input', () => {
-  msg.pitch = Number(pitch.value);
-});
-	
-  // Start speaking
+  // Start speech
   window.speechSynthesis.speak(msg);
 }
 
-// 4. Speak button
+// Speak button
 speakButton.addEventListener('click', speak);
 
-// 5. Stop button
+// Stop button
 stopButton.addEventListener('click', () => {
   window.speechSynthesis.cancel();
 });
 
+// Update rate and pitch settings
+rate.addEventListener('input', () => {
+  msg.rate = Number(rate.value);
+});
 
-// 7. Change voice when the dropdown changes
-voicesDropdown.addEventListener('change', speak);
+pitch.addEventListener('input', () => {
+  msg.pitch = Number(pitch.value);
+});
 
+// Update selected voice
+voicesDropdown.addEventListener('change', () => {
+  const selectedVoice = voices[voicesDropdown.value];
+
+  if (selectedVoice) {
+    msg.voice = selectedVoice;
+  }
+});
