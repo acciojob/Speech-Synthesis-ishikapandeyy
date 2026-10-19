@@ -1,96 +1,106 @@
+const msg = new SpeechSynthesisUtterance();   // reusable utterance object
+let voices = [];                               // will hold SpeechSynthesisVoice objects
 
-const msg = new SpeechSynthesisUtterance();
-let voices = [];
-
+// UI references
 const voicesDropdown = document.querySelector('[name="voice"]');
-const speakButton = document.querySelector('#speak');
-const stopButton = document.querySelector('#stop');
+const rateSlider      = document.querySelector('[name="rate"]');
+const pitchSlider     = document.querySelector('[name="pitch"]');
+const textArea        = document.querySelector('[name="text"]');
+const speakButton     = document.querySelector('#speak');
+const stopButton      = document.querySelector('#stop');
 
-const rate = document.querySelector('[name="rate"]');
-const pitch = document.querySelector('[name="pitch"]');
-const text = document.querySelector('[name="text"]');
-
-// Load available voices
-function getVoices() {
-  voices = window.speechSynthesis.getVoices();
-
-  const previousVoice = voicesDropdown.value;
-  voicesDropdown.innerHTML =
-    '<option value="">Select A Voice</option>';
-
-  voices.forEach((voice, index) => {
-    const option = document.createElement('option');
-    option.value = index;
-    option.textContent = `${voice.name} (${voice.lang})`;
-    voicesDropdown.appendChild(option);
-  });
-
-  // Preserve the previously selected voice
-  if (previousVoice !== '' && voices[previousVoice]) {
-    voicesDropdown.value = previousVoice;
-  }
+function updateSpeakButtonState() {
+  const hasText = textArea.value.trim().length > 0;
+  speakButton.disabled = !hasText;
 }
 
-// Initialize voices
-getVoices();
-window.speechSynthesis.addEventListener(
-  'voiceschanged',
-  getVoices
-);
+textArea.addEventListener('input', updateSpeakButtonState);
+updateSpeakButtonState();   // initial state (disabled until user types)
 
-// Speak function
+function populateVoices() {
+  voices = window.speechSynthesis.getVoices();   // fetch current list
+
+  voicesDropdown.innerHTML = '<option value="">Select A Voice</option>';
+
+  if (voices.length === 0) {
+    showNoVoiceMessage();
+    speakButton.disabled = true;   // cannot speak without a voice
+    return;
+  }
+
+  removeNoVoiceMessage();
+
+  // Fill the dropdown
+  voices.forEach((voice, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;                     // we store the index, not the name
+    opt.textContent = `${voice.name} (${voice.lang})`;
+    voicesDropdown.appendChild(opt);
+  });
+  updateSpeakButtonState();
+}
+
+function showNoVoiceMessage() {
+  let msgEl = document.getElementById('voice-msg');
+  if (!msgEl) {
+    msgEl = document.createElement('p');
+    msgEl.id = 'voice-msg';
+    msgEl.style.color = 'red';
+    msgEl.style.marginTop = '0.5rem';
+    voicesDropdown.parentNode.insertBefore(msgEl, voicesDropdown);
+  }
+  msgEl.textContent = 'No speech‑synthesis voices are available on this device.';
+}
+
+function removeNoVoiceMessage() {
+  const msgEl = document.getElementById('voice-msg');
+  if (msgEl) msgEl.remove();}
+
 function speak() {
-  const textValue = text.value.trim();
+  const text = textArea.value.trim();
 
-  if (textValue === '') {
+  if (text === '') {
     window.speechSynthesis.cancel();
     return;
   }
 
-  // Stop any previous speech
-  window.speechSynthesis.cancel();
-
-  // Set speech properties
-  msg.text = textValue;
-  msg.rate = Number(rate.value);
-  msg.pitch = Number(pitch.value);
-
-  // Apply the selected voice
-  const selectedVoice = voices[voicesDropdown.value];
-
-  if (selectedVoice) {
-    msg.voice = selectedVoice;
+  if (voicesDropdown.value === '') {
+    console.warn('Please select a voice before speaking.');
+    return;
   }
 
-  // Start speaking
+  window.speechSynthesis.cancel();
+
+  msg.text  = text;
+  msg.rate  = Number(rateSlider.value);
+  msg.pitch = Number(pitchSlider.value);
+  msg.voice = voices[Number(voicesDropdown.value)]; // pick the chosen voice
+
+  // Speak!
   window.speechSynthesis.speak(msg);
 }
 
-// Speak button
 speakButton.addEventListener('click', speak);
 
-// Stop button
 stopButton.addEventListener('click', () => {
   window.speechSynthesis.cancel();
 });
 
-// Update speech rate when the slider changes
-rate.addEventListener('input', () => {
-  if (window.speechSynthesis.speaking) {
-    speak();
-  }
+rateSlider.addEventListener('input', () => {
+  if (window.speechSynthesis.speaking) speak();
 });
 
-// Update pitch when the slider changes
-pitch.addEventListener('input', () => {
-  if (window.speechSynthesis.speaking) {
-    speak();
-  }
+pitchSlider.addEventListener('input', () => {
+  if (window.speechSynthesis.speaking) speak();
 });
 
-// Change voice and restart speech
+
 voicesDropdown.addEventListener('change', () => {
-  if (text.value.trim() !== '') {
-    speak();
-  }
+  if (textArea.value.trim() !== '') speak();
 });
+
+populateVoices();                                 // first load
+window.speechSynthesis.addEventListener(
+  'voiceschanged',
+  populateVoices                                 // refresh when the browser notifies us
+);
